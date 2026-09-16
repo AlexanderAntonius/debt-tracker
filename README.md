@@ -1,4 +1,4 @@
-# BebasHutang - Debt Tracker & Smart Payoff Engine
+# Debt Tracker - Smart Bill & Payoff Engine
 
 Aplikasi web modern untuk mencatat kewajiban tagihan bulanan, menghitung estimasi bunga pinjaman secara akurat, dan merencanakan strategi pelunasan hutang cerdas (**Debt Snowball** vs **Debt Avalanche** vs **Kustom**).
 

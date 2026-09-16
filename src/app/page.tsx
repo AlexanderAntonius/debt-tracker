@@ -88,9 +88,9 @@ export default function Home() {
   // Load from LocalStorage
   const loadLocalStorageData = () => {
     try {
-      const savedDebts = localStorage.getItem('bebashutang_debts');
-      const savedPayments = localStorage.getItem('bebashutang_payments');
-      const savedSettings = localStorage.getItem('bebashutang_settings');
+      const savedDebts = localStorage.getItem('debt_tracker_debts') || localStorage.getItem('bebashutang_debts');
+      const savedPayments = localStorage.getItem('debt_tracker_payments') || localStorage.getItem('bebashutang_payments');
+      const savedSettings = localStorage.getItem('debt_tracker_settings') || localStorage.getItem('bebashutang_settings');
 
       if (savedDebts) setDebts(JSON.parse(savedDebts));
       if (savedPayments) setPayments(JSON.parse(savedPayments));
@@ -104,9 +104,9 @@ export default function Home() {
   useEffect(() => {
     if (!userId) {
       try {
-        localStorage.setItem('bebashutang_debts', JSON.stringify(debts));
-        localStorage.setItem('bebashutang_payments', JSON.stringify(payments));
-        localStorage.setItem('bebashutang_settings', JSON.stringify(settings));
+        localStorage.setItem('debt_tracker_debts', JSON.stringify(debts));
+        localStorage.setItem('debt_tracker_payments', JSON.stringify(payments));
+        localStorage.setItem('debt_tracker_settings', JSON.stringify(settings));
       } catch (e) {
         console.error('Failed to save to localStorage', e);
       }
@@ -395,7 +395,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bebashutang-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `debt-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -526,7 +526,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 py-6 text-center text-xs text-slate-500 dark:text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>BebasHutang App • Siap Deploy di Vercel & Supabase Cloud</span>
+          <span>Debt Tracker • Siap Deploy di Vercel & Supabase Cloud</span>
           <span>Dukungan Bunga Flat, Efektif & Kartu Kredit • Snowball & Avalanche</span>
         </div>
       </footer>

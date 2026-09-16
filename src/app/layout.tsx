@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BebasHutang - Debt Tracker & Payoff Calculator',
+  title: 'Debt Tracker - Bill & Payoff Calculator',
   description: 'Aplikasi pencatat tagihan bulanan, estimasi bunga, dan kalkulator pelunasan hutang cerdas (Snowball & Avalanche) siap Vercel.',
 };
 

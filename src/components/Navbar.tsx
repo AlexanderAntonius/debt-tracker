@@ -54,10 +54,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div>
               <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">
-                BebasHutang
+                Debt Tracker
               </span>
               <span className="block text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-1">
-                Tracker & Payoff Engine
+                Bill & Payoff Engine
               </span>
             </div>
           </div>
