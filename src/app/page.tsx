@@ -8,7 +8,8 @@ import {
   INITIAL_DEMO_SETTINGS 
 } from '@/lib/demo-data';
 import { calculateMonthlySummary, simulatePayoff } from '@/lib/debt-calculator';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, getSupabase, initDynamicSupabase } from '@/lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { Navbar } from '@/components/Navbar';
 import { CloudStatusBanner } from '@/components/CloudStatusBanner';
 import { DashboardOverview } from '@/components/DashboardOverview';
@@ -51,38 +52,60 @@ export default function Home() {
 
   // 1. Initial Load: Check Supabase session & local storage
   useEffect(() => {
-    const cloudAvailable = isSupabaseConfigured();
-    setIsCloud(cloudAvailable);
+    let unsubscribeAuth: (() => void) | undefined;
 
-    if (cloudAvailable && supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkCloud = async () => {
+      let client = getSupabase();
+
+      if (!client) {
+        try {
+          const res = await fetch('/api/config');
+          const data = await res.json();
+          if (data.isConfigured && data.supabaseUrl && data.supabaseAnonKey) {
+            client = initDynamicSupabase(data.supabaseUrl, data.supabaseAnonKey);
+            setIsCloud(true);
+          }
+        } catch (e) {
+          console.error('Failed to fetch config', e);
+        }
+      } else {
+        setIsCloud(true);
+      }
+
+      if (client) {
+        setIsCloud(true);
+        const { data: { session } } = await client.auth.getSession();
         if (session?.user) {
           setUserEmail(session.user.email || null);
           setUserId(session.user.id);
-          loadCloudData(session.user.id);
+          loadCloudData(session.user.id, client);
         } else {
           loadLocalStorageData();
         }
-      });
 
-      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUserEmail(session.user.email || null);
-          setUserId(session.user.id);
-          loadCloudData(session.user.id);
-        } else {
-          setUserEmail(null);
-          setUserId(null);
-          loadLocalStorageData();
-        }
-      });
+        const { data: authListener } = client.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            setUserEmail(session.user.email || null);
+            setUserId(session.user.id);
+            loadCloudData(session.user.id, client!);
+          } else {
+            setUserEmail(null);
+            setUserId(null);
+            loadLocalStorageData();
+          }
+        });
 
-      return () => {
-        authListener.subscription.unsubscribe();
-      };
-    } else {
-      loadLocalStorageData();
-    }
+        unsubscribeAuth = () => authListener.subscription.unsubscribe();
+      } else {
+        loadLocalStorageData();
+      }
+    };
+
+    checkCloud();
+
+    return () => {
+      if (unsubscribeAuth) unsubscribeAuth();
+    };
   }, []);
 
   // Load from LocalStorage
@@ -114,8 +137,8 @@ export default function Home() {
   }, [debts, payments, settings, userId]);
 
   // Load from Supabase Cloud
-  const loadCloudData = async (uid: string) => {
-    const client = supabase;
+  const loadCloudData = async (uid: string, clientInstance?: SupabaseClient) => {
+    const client = clientInstance || getSupabase();
     if (!client) return;
     try {
       const { data: debtsData, error: debtsErr } = await client
@@ -137,7 +160,7 @@ export default function Home() {
             })
           )
         );
-        loadCloudData(uid);
+        loadCloudData(uid, client);
         return;
       }
 
@@ -172,6 +195,7 @@ export default function Home() {
 
   // Handlers for Debts
   const handleSaveDebt = async (debtData: Omit<Debt, 'id' | 'is_paid_off'> & { id?: string }) => {
+    const client = getSupabase();
     if (debtData.id) {
       // Edit existing
       const updated = debts.map((d) =>
@@ -179,8 +203,8 @@ export default function Home() {
       );
       setDebts(updated);
 
-      if (userId && supabase) {
-        await supabase
+      if (userId && client) {
+        await client
           .from('debts')
           .update({
             name: debtData.name,
@@ -207,8 +231,8 @@ export default function Home() {
       };
       setDebts([...debts, newDebt]);
 
-      if (userId && supabase) {
-        const { data } = await supabase.from('debts').insert({
+      if (userId && client) {
+        const { data } = await client.from('debts').insert({
           user_id: userId,
           name: debtData.name,
           category: debtData.category,
@@ -234,8 +258,9 @@ export default function Home() {
     setDebts(debts.filter((d) => d.id !== debtId));
     setPayments(payments.filter((p) => p.debt_id !== debtId));
 
-    if (userId && supabase) {
-      await supabase.from('debts').delete().eq('id', debtId);
+    const client = getSupabase();
+    if (userId && client) {
+      await client.from('debts').delete().eq('id', debtId);
     }
   };
 
@@ -256,8 +281,9 @@ export default function Home() {
       )
     );
 
-    if (userId && supabase) {
-      await supabase
+    const client = getSupabase();
+    if (userId && client) {
+      await client
         .from('debts')
         .update({
           is_paid_off: newPaidStatus,
@@ -328,8 +354,9 @@ export default function Home() {
     };
     setPayments([newPayment, ...payments]);
 
-    if (userId && supabase) {
-      await supabase
+    const client = getSupabase();
+    if (userId && client) {
+      await client
         .from('debts')
         .update({
           current_balance: newBalance,
@@ -338,7 +365,7 @@ export default function Home() {
         })
         .eq('id', debtId);
 
-      await supabase.from('debt_payments').insert({
+      await client.from('debt_payments').insert({
         user_id: userId,
         debt_id: debtId,
         amount,
@@ -352,8 +379,9 @@ export default function Home() {
     if (!confirm('Hapus riwayat pembayaran ini?')) return;
     setPayments(payments.filter((p) => p.id !== paymentId));
 
-    if (userId && supabase) {
-      await supabase.from('debt_payments').delete().eq('id', paymentId);
+    const client = getSupabase();
+    if (userId && client) {
+      await client.from('debt_payments').delete().eq('id', paymentId);
     }
   };
 
@@ -361,8 +389,9 @@ export default function Home() {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
 
-    if (userId && supabase) {
-      await supabase.from('user_settings').upsert({
+    const client = getSupabase();
+    if (userId && client) {
+      await client.from('user_settings').upsert({
         user_id: userId,
         monthly_extra_budget: updated.monthly_extra_budget,
         preferred_strategy: updated.preferred_strategy,
@@ -426,8 +455,9 @@ export default function Home() {
 
   // Auth logout
   const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
+    const client = getSupabase();
+    if (client) {
+      await client.auth.signOut();
       setUserEmail(null);
       setUserId(null);
       loadLocalStorageData();

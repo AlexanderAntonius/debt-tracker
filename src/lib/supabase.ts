@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl =
+const defaultUrl =
   process.env.NEXT_PUBLIC_SUPABASE_URL ||
   process.env.NEXT_PUBLIC_STORAGE_URL ||
   process.env.NEXT_PUBLIC_SB_URL ||
@@ -9,7 +9,7 @@ const supabaseUrl =
   process.env.SB_URL ||
   '';
 
-const supabaseAnonKey =
+const defaultKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.NEXT_PUBLIC_STORAGE_ANON_KEY ||
   process.env.NEXT_PUBLIC_SB_ANON_KEY ||
@@ -19,16 +19,22 @@ const supabaseAnonKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   '';
 
+let activeClient: SupabaseClient | null =
+  defaultUrl && defaultKey && defaultUrl.startsWith('https://')
+    ? createClient(defaultUrl, defaultKey)
+    : null;
+
 export const isSupabaseConfigured = (): boolean => {
-  return Boolean(
-    supabaseUrl &&
-    supabaseAnonKey &&
-    supabaseUrl !== 'https://your-project-ref.supabase.co' &&
-    supabaseAnonKey !== 'your-anon-key-here' &&
-    supabaseUrl.startsWith('https://')
-  );
+  return Boolean(activeClient);
 };
 
-export const supabase = isSupabaseConfigured()
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+export const initDynamicSupabase = (url: string, key: string): SupabaseClient => {
+  activeClient = createClient(url, key);
+  return activeClient;
+};
+
+export const getSupabase = (): SupabaseClient | null => {
+  return activeClient;
+};
+
+export const supabase = activeClient;

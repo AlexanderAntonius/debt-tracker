@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, getSupabase, initDynamicSupabase } from '@/lib/supabase';
 import { TrendingDown, Mail, Lock, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -14,13 +14,34 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isConfigured, setIsConfigured] = useState(isSupabaseConfigured());
 
-  const isConfigured = isSupabaseConfigured();
+  React.useEffect(() => {
+    const checkConfig = async () => {
+      let client = getSupabase();
+      if (!client) {
+        try {
+          const res = await fetch('/api/config');
+          const data = await res.json();
+          if (data.isConfigured && data.supabaseUrl && data.supabaseAnonKey) {
+            initDynamicSupabase(data.supabaseUrl, data.supabaseAnonKey);
+            setIsConfigured(true);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } else {
+        setIsConfigured(true);
+      }
+    };
+    checkConfig();
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isConfigured || !supabase) {
-      setErrorMessage('Koneksi Supabase belum dikonfigurasi. Silakan isi NEXT_PUBLIC_SUPABASE_URL dan KEY di .env.local.');
+    const client = getSupabase();
+    if (!client) {
+      setErrorMessage('Koneksi Supabase belum dikonfigurasi. Silakan hubungkan database Supabase di Vercel.');
       return;
     }
 
@@ -30,14 +51,14 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error, data } = await supabase.auth.signUp({
+        const { error, data } = await client.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
         setSuccessMessage('Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi atau langsung login.');
       } else {
-        const { error, data } = await supabase.auth.signInWithPassword({
+        const { error, data } = await client.auth.signInWithPassword({
           email,
           password,
         });
