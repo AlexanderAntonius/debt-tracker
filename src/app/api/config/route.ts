@@ -34,9 +34,21 @@ export async function GET() {
     supabaseUrl.startsWith('https://')
   );
 
+  // Ambil nama-nama env keys yang terkait database untuk memudahkan pencocokan
+  const detectedKeys = Object.keys(process.env).filter(
+    (k) =>
+      k.includes('SUPABASE') ||
+      k.includes('STORAGE') ||
+      k.includes('POSTGRES') ||
+      k.includes('NEXT_PUBLIC') ||
+      k.includes('URL') ||
+      k.includes('KEY')
+  );
+
   return NextResponse.json({
     isConfigured,
     supabaseUrl: isConfigured ? supabaseUrl : null,
     supabaseAnonKey: isConfigured ? supabaseAnonKey : null,
+    detectedKeys,
   });
 }
