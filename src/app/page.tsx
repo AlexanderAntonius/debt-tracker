@@ -147,22 +147,14 @@ export default function Home() {
         .eq('user_id', uid)
         .order('created_at', { ascending: true });
 
-      if (!debtsErr && debtsData && debtsData.length > 0) {
-        setDebts(debtsData as Debt[]);
-      } else if (debtsData && debtsData.length === 0) {
-        // First time cloud user: initialize with demo data
-        await Promise.all(
-          INITIAL_DEMO_DEBTS.map((d) =>
-            client.from('debts').insert({
-              ...d,
-              id: undefined,
-              user_id: uid,
-            })
-          )
-        );
-        loadCloudData(uid, client);
+      if (debtsErr) {
+        console.error('Error loading debts', debtsErr);
         return;
       }
+
+      // Akun cloud selalu memakai data dari database (kosong jika belum ada),
+      // tanpa menyuntikkan data demo kembali.
+      setDebts((debtsData || []) as Debt[]);
 
       const { data: paymentsData } = await client
         .from('debt_payments')
@@ -170,24 +162,21 @@ export default function Home() {
         .eq('user_id', uid)
         .order('payment_date', { ascending: false });
 
-      if (paymentsData) {
-        setPayments(paymentsData as DebtPayment[]);
-      }
+      setPayments((paymentsData || []) as DebtPayment[]);
 
       const { data: settingsData } = await client
         .from('user_settings')
         .select('*')
         .eq('user_id', uid)
-        .single();
+        .maybeSingle();
 
-      if (settingsData) {
-        setSettings({
-          user_id: uid,
-          monthly_extra_budget: Number(settingsData.monthly_extra_budget) || 0,
-          preferred_strategy: settingsData.preferred_strategy || 'snowball',
-          currency: settingsData.currency || 'IDR',
-        });
-      }
+      setSettings({
+        user_id: uid,
+        monthly_extra_budget: Number(settingsData?.monthly_extra_budget) || 0,
+        preferred_strategy: settingsData?.preferred_strategy || 'snowball',
+        currency: settingsData?.currency || 'IDR',
+      });
+
     } catch (err) {
       console.error('Error loading cloud data', err);
     }
