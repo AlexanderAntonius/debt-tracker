@@ -54,7 +54,29 @@ export async function GET() {
       k.includes('KEY')
   );
 
+  // Diagnostik aman: hanya panjang & awalan nilai, tidak pernah nilai lengkap.
+  const describe = (name: string) => {
+    const v = env[name];
+    return v === undefined
+      ? 'tidak ada'
+      : `panjang=${v.length}, awalan="${v.slice(0, 8)}"`;
+  };
+  const diagnostics = Object.fromEntries(
+    [
+      'NEXT_PUBLIC_SUPABASE_URL',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+      'SUPABASE_URL',
+      'SUPABASE_ANON_KEY',
+      'STORAGE_SUPABASE_URL',
+      'STORAGE_SUPABASE_ANON_KEY',
+      'NEXT_PUBLIC_STORAGE_SUPABASE_URL',
+      'NEXT_PUBLIC_STORAGE_SUPABASE_ANON_KEY',
+    ].map((n) => [n, describe(n)])
+  );
+
   return NextResponse.json({
+    version: 'v2-diagnostics',
+    diagnostics,
     isConfigured,
     supabaseUrl: isConfigured ? supabaseUrl : null,
     supabaseAnonKey: isConfigured ? supabaseAnonKey : null,
