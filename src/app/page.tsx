@@ -474,8 +474,10 @@ export default function Home() {
       {/* Cloud Status Banner */}
       <CloudStatusBanner
         isCloudConnected={isCloud && Boolean(userId)}
+        isCloudReady={isCloud}
         userEmail={userEmail}
         onOpenSetupModal={() => setIsSetupModalOpen(true)}
+        onLogin={() => router.push('/login')}
       />
 
       {/* Top Navbar */}
