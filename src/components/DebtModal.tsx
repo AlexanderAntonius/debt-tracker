@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Debt, DebtCategory, InterestType } from '../lib/types';
 import { formatCurrencyIDR, parseIDRInput } from '../lib/formatters';
-import { X, Info, HelpCircle } from 'lucide-react';
+import { X, Info, HelpCircle, Calculator, Check } from 'lucide-react';
 
 interface DebtModalProps {
   isOpen: boolean;
@@ -27,6 +27,12 @@ export const DebtModal: React.FC<DebtModalProps> = ({
   const [minPaymentStr, setMinPaymentStr] = useState('');
   const [dueDate, setDueDate] = useState<number>(10);
   const [notes, setNotes] = useState('');
+
+  // Helper Kalkulator Tenor Cicilan (Pinjol / Paylater / KTA)
+  const [showTenorCalc, setShowTenorCalc] = useState(false);
+  const [calcMonthlyInstallment, setCalcMonthlyInstallment] = useState('');
+  const [calcTotalTenor, setCalcTotalTenor] = useState('');
+  const [calcPaidTenor, setCalcPaidTenor] = useState('');
 
   useEffect(() => {
     if (initialDebt) {
@@ -164,6 +170,105 @@ export const DebtModal: React.FC<DebtModalProps> = ({
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               />
             </div>
+          </div>
+
+          {/* Quick Helper Calculator for Pinjol / Paylater */}
+          <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowTenorCalc(!showTenorCalc)}
+                className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:underline"
+              >
+                <Calculator className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                {showTenorCalc ? 'Tutup Bantuan Hitung Cicilan' : '💡 Bingung sisa & plafon? Klik untuk hitung otomatis (Pinjol/Paylater)'}
+              </button>
+            </div>
+
+            {showTenorCalc && (
+              <div className="space-y-3 pt-1 border-t border-emerald-200/60 dark:border-emerald-800/40 text-xs">
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                  Masukkan info cicilan dari aplikasi Paylater/Pinjol Anda (misal: Rp 500rb/bln, 12 bulan, sudah bayar 3 kali).
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Cicilan / Bulan (Rp)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="500.000"
+                      value={calcMonthlyInstallment}
+                      onChange={(e) => setCalcMonthlyInstallment(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Total Tenor (Bulan)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="12"
+                      value={calcTotalTenor}
+                      onChange={(e) => setCalcTotalTenor(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      Sudah Bayar (Bulan)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="3"
+                      value={calcPaidTenor}
+                      onChange={(e) => setCalcPaidTenor(e.target.value)}
+                      className="w-full px-2.5 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                {parseIDRInput(calcMonthlyInstallment) > 0 && parseInt(calcTotalTenor, 10) > 0 && (
+                  <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 space-y-1">
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-500">Estimasi Pokok Awal / Plafon:</span>
+                      <strong className="text-slate-800 dark:text-slate-200">
+                        {formatCurrencyIDR(parseIDRInput(calcMonthlyInstallment) * (parseInt(calcTotalTenor, 10) || 0))}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-500">Estimasi Sisa Saldo ({Math.max(0, (parseInt(calcTotalTenor, 10) || 0) - (parseInt(calcPaidTenor, 10) || 0))} bln lagi):</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400">
+                        {formatCurrencyIDR(parseIDRInput(calcMonthlyInstallment) * Math.max(0, (parseInt(calcTotalTenor, 10) || 0) - (parseInt(calcPaidTenor, 10) || 0)))}
+                      </strong>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const monthly = parseIDRInput(calcMonthlyInstallment);
+                        const total = parseInt(calcTotalTenor, 10) || 0;
+                        const paid = parseInt(calcPaidTenor, 10) || 0;
+                        const remaining = Math.max(0, total - paid);
+
+                        setOriginalBalanceStr((monthly * total).toString());
+                        setCurrentBalanceStr((monthly * remaining).toString());
+                        setMinPaymentStr(monthly.toString());
+                        setShowTenorCalc(false);
+                      }}
+                      className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Terapkan Hasil Ke Form Di Bawah
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Saldo Saat Ini & Saldo Awal */}
