@@ -16,7 +16,6 @@ const defaultKey =
   process.env.SUPABASE_ANON_KEY ||
   process.env.STORAGE_ANON_KEY ||
   process.env.SB_ANON_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
   '';
 
 let activeClient: SupabaseClient | null =

@@ -2,37 +2,46 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const isValidUrl = (v?: string): v is string =>
+  Boolean(v) && v!.startsWith('https://') && v !== 'https://your-project-ref.supabase.co';
+
+const isValidKey = (v?: string): v is string =>
+  Boolean(v) && v!.length > 20 && v !== 'your-anon-key-here';
+
 export async function GET() {
-  // Ambil URL dari berbagai kemungkinan format yang di-inject Vercel
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_STORAGE_URL ||
-    process.env.NEXT_PUBLIC_SB_URL ||
-    process.env.SUPABASE_URL ||
-    process.env.STORAGE_URL ||
-    process.env.SB_URL ||
-    process.env.STORAGE_POSTGRES_URL ||
-    '';
+  const env = process.env;
 
-  // Ambil Key dari berbagai kemungkinan format
-  const supabaseAnonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_STORAGE_ANON_KEY ||
-    process.env.NEXT_PUBLIC_SB_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.STORAGE_ANON_KEY ||
-    process.env.SB_ANON_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.STORAGE_SERVICE_ROLE_KEY ||
-    '';
+  // Kandidat URL dari berbagai format yang mungkin di-inject Vercel (urutan = prioritas).
+  // Hanya nilai valid pertama yang dipakai.
+  const urlCandidates = [
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.SUPABASE_URL,
+    env.NEXT_PUBLIC_STORAGE_SUPABASE_URL,
+    env.STORAGE_SUPABASE_URL,
+    env.NEXT_PUBLIC_STORAGE_URL,
+    env.NEXT_PUBLIC_SB_URL,
+    env.STORAGE_URL,
+    env.SB_URL,
+  ];
 
-  const isConfigured = Boolean(
-    supabaseUrl &&
-    supabaseAnonKey &&
-    supabaseUrl !== 'https://your-project-ref.supabase.co' &&
-    supabaseAnonKey !== 'your-anon-key-here' &&
-    supabaseUrl.startsWith('https://')
-  );
+  // Kandidat key publik saja (anon / publishable). Service role / secret TIDAK PERNAH dikirim ke browser.
+  const keyCandidates = [
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    env.SUPABASE_ANON_KEY,
+    env.NEXT_PUBLIC_STORAGE_SUPABASE_ANON_KEY,
+    env.STORAGE_SUPABASE_ANON_KEY,
+    env.NEXT_PUBLIC_STORAGE_SUPABASE_PUBLISHABLE_KEY,
+    env.STORAGE_SUPABASE_PUBLISHABLE_KEY,
+    env.NEXT_PUBLIC_STORAGE_ANON_KEY,
+    env.NEXT_PUBLIC_SB_ANON_KEY,
+    env.STORAGE_ANON_KEY,
+    env.SB_ANON_KEY,
+  ];
+
+  const supabaseUrl = urlCandidates.find(isValidUrl) || '';
+  const supabaseAnonKey = keyCandidates.find(isValidKey) || '';
+
+  const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
   // Ambil nama-nama env keys yang terkait database untuk memudahkan pencocokan
   const detectedKeys = Object.keys(process.env).filter(
