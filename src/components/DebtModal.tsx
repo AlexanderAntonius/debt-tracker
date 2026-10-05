@@ -143,7 +143,32 @@ export const DebtModal: React.FC<DebtModalProps> = ({
               </label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as DebtCategory)}
+                onChange={(e) => {
+                  const newCat = e.target.value as DebtCategory;
+                  setCategory(newCat);
+                  // Otomatis rekomendasikan bunga & model untuk hutang baru
+                  if (!initialDebt) {
+                    if (newCat === 'credit_card') {
+                      setInterestRateStr('21');
+                      setInterestType('credit_card');
+                    } else if (newCat === 'paylater') {
+                      setInterestRateStr('27');
+                      setInterestType('flat');
+                    } else if (newCat === 'pinjol') {
+                      setInterestRateStr('36');
+                      setInterestType('flat');
+                    } else if (newCat === 'mortgage') {
+                      setInterestRateStr('7.5');
+                      setInterestType('effective');
+                    } else if (newCat === 'vehicle') {
+                      setInterestRateStr('8');
+                      setInterestType('flat');
+                    } else if (newCat === 'kta') {
+                      setInterestRateStr('14');
+                      setInterestType('flat');
+                    }
+                  }
+                }}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
               >
                 <option value="credit_card">Kartu Kredit</option>
@@ -378,6 +403,65 @@ export const DebtModal: React.FC<DebtModalProps> = ({
               <span className="text-[10px] text-slate-400 block mt-0.5">
                 {(parseFloat(interestRateStr) / 12 || 0).toFixed(2)}% per bulan
               </span>
+
+              {/* Quick Preset Buttons */}
+              <div className="mt-2 space-y-1">
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block">
+                  💡 Rekomendasi Bunga Acuan (Indonesia):
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterestRateStr('21');
+                      setInterestType('credit_card');
+                    }}
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-700 dark:hover:bg-emerald-950 text-[10px] rounded border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition"
+                  >
+                    💳 KK (21%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterestRateStr('27');
+                      setInterestType('flat');
+                    }}
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-700 dark:hover:bg-emerald-950 text-[10px] rounded border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition"
+                  >
+                    🛍️ Paylater (27%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterestRateStr('36');
+                      setInterestType('flat');
+                    }}
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-700 dark:hover:bg-emerald-950 text-[10px] rounded border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition"
+                  >
+                    ⚡ Pinjol (36%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterestRateStr('7.5');
+                      setInterestType('effective');
+                    }}
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-700 dark:hover:bg-emerald-950 text-[10px] rounded border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition"
+                  >
+                    🏠 KPR (7.5%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterestRateStr('8');
+                      setInterestType('flat');
+                    }}
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-emerald-100 dark:bg-slate-700 dark:hover:bg-emerald-950 text-[10px] rounded border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 transition"
+                  >
+                    🚗 KKB (8%)
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div>
