@@ -20,6 +20,7 @@ import { DebtModal } from '@/components/DebtModal';
 import { PaymentModal } from '@/components/PaymentModal';
 import { PaymentHistoryModal } from '@/components/PaymentHistoryModal';
 import { CloudSetupModal } from '@/components/CloudSetupModal';
+import { RestructureModal } from '@/components/RestructureModal';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
@@ -49,6 +50,7 @@ export default function Home() {
   const [selectedDebtForHistory, setSelectedDebtForHistory] = useState<Debt | null>(null);
 
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [isRestructureModalOpen, setIsRestructureModalOpen] = useState(false);
 
   // 1. Initial Load: Check Supabase session & local storage
   useEffect(() => {
@@ -240,6 +242,90 @@ export default function Home() {
         }
       }
     }
+  };
+
+  const handleExecuteRestructure = async (
+    selectedDebtIds: string[],
+    newDebtData: Omit<Debt, 'id' | 'is_paid_off'>
+  ) => {
+    const client = getSupabase();
+    const bankName = newDebtData.restructured_bank || 'Bank Restrukturisasi';
+
+    // 1. Mark selected old debts as paid off via restructuring
+    const updatedDebts = debts.map((d) => {
+      if (selectedDebtIds.includes(d.id)) {
+        return {
+          ...d,
+          is_paid_off: true,
+          current_balance: 0,
+          notes: `(Digabungkan via Restrukturisasi ${bankName}) ${d.notes || ''}`.trim(),
+        };
+      }
+      return d;
+    });
+
+    // 2. Create new consolidated debt
+    const tempNewId = `debt-${Date.now()}`;
+    const newConsolidatedDebt: Debt = {
+      ...newDebtData,
+      id: tempNewId,
+      is_paid_off: false,
+      custom_priority: updatedDebts.length + 1,
+      created_at: new Date().toISOString(),
+    };
+
+    setDebts([...updatedDebts, newConsolidatedDebt]);
+
+    // 3. Save to Supabase Cloud if logged in
+    if (userId && client) {
+      // Update selected old debts to paid off in Supabase
+      await Promise.all(
+        selectedDebtIds.map((id) => {
+          const oldDebt = debts.find((d) => d.id === id);
+          return client
+            .from('debts')
+            .update({
+              is_paid_off: true,
+              current_balance: 0,
+              notes: `(Digabungkan via Restrukturisasi ${bankName}) ${oldDebt?.notes || ''}`.trim(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', id);
+        })
+      );
+
+      // Insert new consolidated debt into Supabase
+      const { data } = await client
+        .from('debts')
+        .insert({
+          user_id: userId,
+          name: newDebtData.name,
+          category: newDebtData.category,
+          current_balance: newDebtData.current_balance,
+          original_balance: newDebtData.original_balance,
+          interest_rate: newDebtData.interest_rate,
+          interest_type: newDebtData.interest_type,
+          min_payment: newDebtData.min_payment,
+          due_date: newDebtData.due_date,
+          custom_priority: updatedDebts.length + 1,
+          notes: newDebtData.notes,
+          is_restructured: true,
+          restructured_bank: newDebtData.restructured_bank,
+          restructure_notes: newDebtData.restructure_notes,
+        })
+        .select()
+        .single();
+
+      if (data) {
+        setDebts((prev) =>
+          prev.map((d) => (d.id === tempNewId ? (data as Debt) : d))
+        );
+      }
+    }
+
+    alert(
+      `Berhasil! ${selectedDebtIds.length} pinjaman lama telah ditandai lunas dan digabungkan menjadi pinjaman baru "${newDebtData.name}".`
+    );
   };
 
   const handleDeleteDebt = async (debtId: string) => {
@@ -532,6 +618,7 @@ export default function Home() {
               setEditingDebt(null);
               setIsDebtModalOpen(true);
             }}
+            onOpenRestructure={() => setIsRestructureModalOpen(true)}
           />
         )}
 
@@ -558,6 +645,13 @@ export default function Home() {
         onClose={() => setIsDebtModalOpen(false)}
         onSave={handleSaveDebt}
         initialDebt={editingDebt}
+      />
+
+      <RestructureModal
+        isOpen={isRestructureModalOpen}
+        onClose={() => setIsRestructureModalOpen(false)}
+        debts={debts}
+        onExecuteRestructure={handleExecuteRestructure}
       />
 
       <PaymentModal

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Debt, DebtCategory, InterestType } from '../lib/types';
 import { formatCurrencyIDR, parseIDRInput } from '../lib/formatters';
-import { X, Info, HelpCircle, Calculator, Check } from 'lucide-react';
+import { X, Info, HelpCircle, Calculator, Check, RefreshCw } from 'lucide-react';
 
 interface DebtModalProps {
   isOpen: boolean;
@@ -28,6 +28,11 @@ export const DebtModal: React.FC<DebtModalProps> = ({
   const [dueDate, setDueDate] = useState<number>(10);
   const [notes, setNotes] = useState('');
 
+  // Restrukturisasi State
+  const [isRestructured, setIsRestructured] = useState(false);
+  const [restructuredBank, setRestructuredBank] = useState('');
+  const [restructureNotes, setRestructureNotes] = useState('');
+
   // Helper Kalkulator Tenor Cicilan (Pinjol / Paylater / KTA)
   const [showTenorCalc, setShowTenorCalc] = useState(false);
   const [calcMonthlyInstallment, setCalcMonthlyInstallment] = useState('');
@@ -45,6 +50,9 @@ export const DebtModal: React.FC<DebtModalProps> = ({
       setMinPaymentStr(initialDebt.min_payment.toString());
       setDueDate(initialDebt.due_date || 1);
       setNotes(initialDebt.notes || '');
+      setIsRestructured(Boolean(initialDebt.is_restructured));
+      setRestructuredBank(initialDebt.restructured_bank || '');
+      setRestructureNotes(initialDebt.restructure_notes || '');
     } else {
       // Default new
       setName('');
@@ -56,6 +64,9 @@ export const DebtModal: React.FC<DebtModalProps> = ({
       setMinPaymentStr('');
       setDueDate(10);
       setNotes('');
+      setIsRestructured(false);
+      setRestructuredBank('');
+      setRestructureNotes('');
     }
   }, [initialDebt, isOpen]);
 
@@ -95,6 +106,9 @@ export const DebtModal: React.FC<DebtModalProps> = ({
       due_date: Number(dueDate) || 1,
       custom_priority: initialDebt?.custom_priority || 0,
       notes: notes.trim(),
+      is_restructured: isRestructured,
+      restructured_bank: isRestructured ? restructuredBank.trim() : undefined,
+      restructure_notes: isRestructured ? restructureNotes.trim() : undefined,
     });
 
     onClose();
@@ -480,6 +494,52 @@ export const DebtModal: React.FC<DebtModalProps> = ({
                 {formatCurrencyIDR(parseIDRInput(minPaymentStr))}
               </span>
             </div>
+          </div>
+
+          {/* Restrukturisasi Checkbox & Details */}
+          <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-3.5 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-900 dark:text-amber-200">
+              <input
+                type="checkbox"
+                checked={isRestructured}
+                onChange={(e) => setIsRestructured(e.target.checked)}
+                className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+              />
+              <span className="flex items-center gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                Hutang Ini Hasil Restrukturisasi / Keringanan Bank
+              </span>
+            </label>
+
+            {isRestructured && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-amber-200/60 dark:border-amber-800/40 text-xs">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Bank / Lembaga Restrukturisasi *
+                  </label>
+                  <input
+                    type="text"
+                    required={isRestructured}
+                    placeholder="Contoh: Bank Mandiri, BCA, OJK"
+                    value={restructuredBank}
+                    onChange={(e) => setRestructuredBank(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Catatan Keringanan (Opsional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Potongan bunga 50% / Tenor 24 bln"
+                    value={restructureNotes}
+                    onChange={(e) => setRestructureNotes(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Catatan */}

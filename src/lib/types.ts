@@ -25,6 +25,9 @@ export interface Debt {
   custom_priority: number;
   notes?: string;
   is_paid_off: boolean;
+  is_restructured?: boolean;
+  restructured_bank?: string;
+  restructure_notes?: string;
   created_at?: string;
   updated_at?: string;
 }

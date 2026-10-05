@@ -18,9 +18,16 @@ CREATE TABLE IF NOT EXISTS public.debts (
     custom_priority INTEGER NOT NULL DEFAULT 0,
     notes TEXT,
     is_paid_off BOOLEAN NOT NULL DEFAULT FALSE,
+    is_restructured BOOLEAN DEFAULT FALSE,
+    restructured_bank TEXT,
+    restructure_notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS is_restructured BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS restructured_bank TEXT;
+ALTER TABLE public.debts ADD COLUMN IF NOT EXISTS restructure_notes TEXT;
 
 -- 2. TABEL PEMBAYARAN / HISTORI CICILAN (debt_payments)
 CREATE TABLE IF NOT EXISTS public.debt_payments (

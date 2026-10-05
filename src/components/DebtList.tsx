@@ -17,7 +17,8 @@ import {
   ArrowUp, 
   ArrowDown, 
   PlusCircle,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react';
 
 interface DebtListProps {
@@ -27,6 +28,7 @@ interface DebtListProps {
   onTogglePaidOff: (debtId: string) => void;
   onMovePriority: (debtId: string, direction: 'up' | 'down') => void;
   onOpenAddDebt: () => void;
+  onOpenRestructure?: () => void;
 }
 
 export const DebtList: React.FC<DebtListProps> = ({
@@ -36,6 +38,7 @@ export const DebtList: React.FC<DebtListProps> = ({
   onTogglePaidOff,
   onMovePriority,
   onOpenAddDebt,
+  onOpenRestructure,
 }) => {
   const activeDebts = debts.filter((d) => !d.is_paid_off && d.current_balance > 0);
   const paidOffDebts = debts.filter((d) => d.is_paid_off || d.current_balance === 0);
@@ -54,13 +57,25 @@ export const DebtList: React.FC<DebtListProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onOpenAddDebt}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition"
-        >
-          <PlusCircle className="w-4 h-4" />
-          Tambah Hutang Baru
-        </button>
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {onOpenRestructure && activeDebts.length > 0 && (
+            <button
+              onClick={onOpenRestructure}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-700 hover:to-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Restrukturisasi & Gabung
+            </button>
+          )}
+
+          <button
+            onClick={onOpenAddDebt}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Tambah Hutang Baru
+          </button>
+        </div>
       </div>
 
       {/* Active Debts Section */}
@@ -95,6 +110,12 @@ export const DebtList: React.FC<DebtListProps> = ({
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getCategoryBadgeStyle(debt.category)}`}>
                         {getCategoryLabel(debt.category)}
                       </span>
+                      {debt.is_restructured && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                          <RefreshCw className="w-3 h-3 text-amber-600" />
+                          Restrukturisasi: {debt.restructured_bank || 'Bank/Lembaga'}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
